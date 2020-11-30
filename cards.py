@@ -1,58 +1,103 @@
 import math, random, string
 
 class Card(object):
-    ranks = ['Ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'Jack', 'Queen', 'King']
+    ranks = [None, 'Ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'Jack', 'Queen', 'King']
     suits = ['Spades', 'Diamonds', 'Clubs', 'Hearts']
-    ranksShorthand = ['A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K']
-    suitsShorthand = ['S', 'D', 'C', 'H']
+    ranks_shorthand = [None, 'A', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K']
+    suits_shorthand = ['S', 'D', 'C', 'H']
 
     @staticmethod
-    def newDeck(shuffled=True):
+    def new_deck(shuffled=True):
         deck = list()
-        for suit in suits:
-            for 
-
+        for suit in Card.suits:
+            for rank in range(1, len(Card.ranks)):
+                if suit in {'Clubs', 'Hearts'}:
+                    deck.append(Card(len(Card.ranks) - rank,suit))
+                else:
+                    deck.append(Card(rank, suit))
+        if shuffled: 
+            random.shuffle(deck)
+        return deck
 
     def __init__(self, rank, suit):
-        if rank in range(1, len(Card.ranks)+1):
-            self.rank = rank-1
-        elif rank in Card.ranks:
+        if rank in range(1, len(Card.ranks)):
+            self.rank = rank
+        elif (rank in Card.ranks) and (rank != None):
             self.rank = Card.ranks.index(rank)
-        elif rank in Card.ranksShorthand:
-            self.rank = Card.ranksShorthand.index(rank)
+        elif (rank in Card.ranks_shorthand) and (rank != None):
+            self.rank = Card.ranks_shorthand.index(rank)
         else:
-            raise Exception(f'{rank} not a valid rank')
+            raise AttributeError(f'{rank} not a valid rank')
         
         if suit in range(len(Card.suits)):
             self.suit = suit
         elif suit in Card.suits:
             self.suit = Card.suits.index(suit)
-        elif suit in Card.suitsShorthand:
-            self.suit = Card.suitsShorthand.index(suit)
+        elif suit in Card.suits_shorthand:
+            self.suit = Card.suits_shorthand.index(suit)
         else:
-            raise Exception(f'{suit} not a valid suit')
+            raise AttributeError(f'{suit} not a valid suit')
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         if isinstance(other, Card):
-            rank1 = self.rank if self.rank > 0 else 13
-            rank2 = other.rank if other.rank > 0 else 13
-            return rank1 - rank2
+            rank1 = self.rank if self.rank > 1 else len(Card.ranks)
+            rank2 = other.rank if other.rank > 1 else len(Card.ranks)
+            return rank1 == rank2
+
+    def __lt__(self, other):
+        if isinstance(other, Card):
+            rank1 = self.rank if self.rank > 1 else len(Card.ranks)
+            rank2 = other.rank if other.rank > 1 else len(Card.ranks)
+            return rank1 < rank2
+
+    def __le__(self, other):
+        if isinstance(other, Card):
+            rank1 = self.rank if self.rank > 1 else len(Card.ranks)
+            rank2 = other.rank if other.rank > 1 else len(Card.ranks)
+            return rank1 <= rank2
+
+    def __gt__(self, other):
+        if isinstance(other, Card):
+            rank1 = self.rank if self.rank > 1 else len(Card.ranks)
+            rank2 = other.rank if other.rank > 1 else len(Card.ranks)
+            return rank1 > rank2
+
+    def __ge__(self, other):
+        if isinstance(other, Card):
+            rank1 = self.rank if self.rank > 1 else len(Card.ranks)
+            rank2 = other.rank if other.rank > 1 else len(Card.ranks)
+            return rank1 >= rank2
     
     def __hash__(self):
         return hash((Card.ranks[self.rank], Card.suits[self.suit]))
 
     def __repr__(self):
-        return f'{Card.ranksShorthand[self.rank]}{Card.suitsShorthand[self.suit]}'
+        return f'{Card.ranks_shorthand[self.rank]}{Card.suits_shorthand[self.suit]}'
 
     def __str__(self):
         return f'{Card.ranks[self.rank]} of {Card.suits[self.suit]}'
 
 
-def bestPokerHand(holeCards, communityCards):
-    cards = holdCards + communityCards
-    rankCount = dict()
-    suitCount = dict()
+
+
+def best_poker_hand(hole_cards, community_cards=list()):
+    cards = sorted(list(hole_cards) + community_cards)
+    rank_count = dict()
+    suit_count = dict()
     for card in cards:
-        rankCount[card.rank] = rankCount.get(card.rank, 0) + 1
-        suitCount[card.suit] = rankCount.get(card.suit, 0) + 1
+        rank_count[card.rank] = rank_count.get(card.rank, 0) + 1
+        suit_count[card.suit] = rank_count.get(card.suit, 0) + 1
+    
+    flush_suit = max(suit_count)
+    if suit_count[flush_suit] >= 5:
+        for card in range(1, len(cards)):
+            if card.suit == flush_suit and 
+
+
+
+    
+
+    
+    
     return None
+
