@@ -1,4 +1,14 @@
-# NeLter
+# NeLter <!-- omit in toc -->
+
+## Table of Contents <!-- omit in toc -->
+
+- [Description](#description)
+- [Competitive Analysis](#competitive-analysis)
+- [Structure](#structure)
+- [Algorithmic Plan](#algorithmic-plan)
+- [Timeline](#timeline)
+- [Version Control](#version-control)
+- [Module List](#module-list)
 
 ## Description
 
@@ -36,7 +46,6 @@ Version control for this project is handled through Git and GitHub. See image in
 - Pickle
 - Pillow
 - Tkinter
-
 
 
 
