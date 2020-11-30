@@ -53,7 +53,7 @@ class Hand(object):
     def reset_round(self):
         self.next_player(self.button)
         self.closing_action = self.button
-        self.current_wager = 0
+        self.current_wager = self.absolute_min_raise
         self.relative_min_raise = self.absolute_min_raise
 
 
@@ -86,13 +86,16 @@ class Hand(object):
             self.relative_min_raise = 2*(wager - self.current_wager)
             self.closing_action = self.action
             self.next_player()
+            print(f'Player: {self.action} raises')
         else:
             # Player Folds
             if wager < self.current_wager:
                 self.players.pop(self.action)
+                print(f'Player: {self.action} folds')
             # Player Calls or Checks
             else:
                 self.bet(self.current_wager)
+                print(f'Player: {self.action} calls')
 
             if self.closing_action == self.action:
                 self.progress_game() 
@@ -130,6 +133,7 @@ class Player(object):
 
 players = [Player(100, 1), Player(100, 0)]
 hand1 = Hand(players, 0, 5, 10)
-hand1.act(5)
-#hand1.act(2)
+print(hand1.absolute_min_raise)
+#hand1.act(5)
+#hand1.act(5)
 print(hand1)
