@@ -19,3 +19,5 @@ def bestStraight(holeCards, communityCards=list()):
         if cards[i-1].rank + 1 == cards[i].rank:
             bestHand.append(cards[i])
         elif 
+
+

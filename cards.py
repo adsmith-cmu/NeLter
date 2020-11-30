@@ -91,13 +91,7 @@ def best_poker_hand(hole_cards, community_cards=list()):
     flush_suit = max(suit_count)
     if suit_count[flush_suit] >= 5:
         for card in range(1, len(cards)):
-            if card.suit == flush_suit and 
-
-
-
-    
-
-    
-    
+            if card.suit == flush_suit:
+                return None
     return None
 
