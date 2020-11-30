@@ -18,7 +18,7 @@ class Hand(object):
 
         self.betting_round = 0
         self.button = button
-        self.absolute_min_raise = max(*blinds, ante)
+        self.absolute_min_raise = max(*blinds, 0)
         self.reset_round()
 
         # Deal initial cards and put in blinds/ante
@@ -28,13 +28,14 @@ class Hand(object):
                     player.stack -= ante
                     self.pot += ante
                 player.deal_card(self.deck.pop(0))
-                self.next_player()
 
         for blind in blinds:
-            self.bet(blind)
-            self.closing_action = self.action
+            player = self.players[self.action]
+            player.stack -= blind
+            self.pot += blind
+            self.current_bet[self.action] += blind
             self.next_player()
-
+            self.closing_action = self.action
 
         # Initialize hand log -- HANDLE WITH LOG CLASS??
         Hand.count += 1
@@ -53,7 +54,7 @@ class Hand(object):
     def reset_round(self):
         self.next_player(self.button)
         self.closing_action = self.button
-        self.current_wager = self.absolute_min_raise
+        self.current_bet = [0 for _ in self.players]
         self.relative_min_raise = self.absolute_min_raise
 
 
@@ -71,36 +72,51 @@ class Hand(object):
                 self.community_cards.append(self.deck.pop(0))
 
 
-    def bet(self, wager):
-        player = self.players[self.action]
-        wager = min(wager, player.stack)
-        player.stack -= wager
-        self.pot += wager
-
-
     # NEED LOGGING FOR HAND AND PLAYER
-    def act(self, wager):
-        # Player Raises
-        if wager >= self.current_wager + self.relative_min_raise:
-            self.bet(wager)
-            self.relative_min_raise = 2*(wager - self.current_wager)
+    def bet(self, amount):
+        player = self.players[self.action]
+        call_price = max(self.current_bet) - self.current_bet[self.action]
+        min_raise = call_price + self.relative_min_raise
+        if player.stack > call_price:
+            amount = max(amount, min(min_raise, player.stack))
+            player.stack -= amount
+            self.pot += amount
+            self.current_bet[self.action] += amount 
+            self.relative_min_raise = amount - call_price
             self.closing_action = self.action
             self.next_player()
-            print(f'Player: {self.action} raises')
         else:
-            # Player Folds
-            if wager < self.current_wager:
-                self.players.pop(self.action)
-                print(f'Player: {self.action} folds')
-            # Player Calls or Checks
-            else:
-                self.bet(self.current_wager)
-                print(f'Player: {self.action} calls')
+            self.call()
+        
 
+    def call(self):
+        player = self.players[self.action]
+        call_price = max(self.current_bet) - self.current_bet[self.action]
+        if player.stack > 0 or call_price <= 0:
+            amount = min(call_price, player.stack)
+            player.stack -= amount
+            self.pot += amount
+            self.current_bet[self.action] += amount
+
+            self.next_player() 
             if self.closing_action == self.action:
                 self.progress_game() 
-            else:
-                self.next_player() 
+        else:
+            self.fold()
+
+        
+    def fold(self):
+        call_price = max(self.current_bet) - self.current_bet[self.action]
+        if call_price > 0:
+            self.players.pop(self.action)
+            self.current_bet.pop(self.action)
+
+        if len(self.players) == 1:
+            self.showdown()
+        else:
+            self.next_player() 
+            if self.closing_action == self.action:
+                self.progress_game() 
 
 
     def showdown(self):
@@ -116,6 +132,7 @@ class Hand(object):
 
     
 class Player(object):
+
     def __init__(self, stack, seat):
         self.stack = stack
         self.seat = seat
@@ -125,15 +142,13 @@ class Player(object):
         self.hole_cards.append(card)
         self.hole_cards.sort(reverse=True)
 
-    def muck(self):
-        self.hole_cards = list()
-
     def __repr__(self):
         return f'Player(Seat: {self.seat}, Stack: {self.stack}, Cards: {self.hole_cards})'
 
 players = [Player(100, 1), Player(100, 0)]
 hand1 = Hand(players, 0, 5, 10)
-print(hand1.absolute_min_raise)
-#hand1.act(5)
-#hand1.act(5)
+hand1.call()
+hand1.fold()
+hand1.bet(12)
+hand1.call()
 print(hand1)
