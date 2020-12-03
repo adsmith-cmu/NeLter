@@ -1,4 +1,6 @@
 from cards import Card
+from tkinter import ARC
+from PIL import ImageTk
 
 class Hand(object):
     count = 0 # Keep track of hand number for logs
@@ -122,6 +124,11 @@ class Hand(object):
     def showdown(self):
         return None
     
+
+    def draw_community_cards(self, app, canvas):
+        pass
+
+
     def __repr__(self):
         output = f'Pot: {self.pot} Board: {self.community_cards}'
         for i in range(len(self.players)):
@@ -142,13 +149,54 @@ class Player(object):
         self.hole_cards.append(card)
         self.hole_cards.sort(reverse=True)
 
+    
+    def draw_hole_cards(self, app, canvas):
+        sprite = self.hole_cards[0].sprite()
+        scaling_factor = app.height / 6 / sprite.size[1]
+        sprite_x = int(sprite.size[0] * scaling_factor)
+        sprite_y = int(sprite.size[1] * scaling_factor)
+
+        card1 = self.hole_cards[0].sprite().resize((sprite_x, sprite_y))
+        card2 = self.hole_cards[1].sprite().resize((sprite_x, sprite_y))
+        canvas.create_image(app.width/2 - (sprite_x/2 + 10), (2/3)*app.height, image=ImageTk.PhotoImage(card1))
+        canvas.create_image(app.width/2 + (sprite_x/2 + 10), (2/3)*app.height, image=ImageTk.PhotoImage(card2))
+
     def __repr__(self):
         return f'Player(Seat: {self.seat}, Stack: {self.stack}, Cards: {self.hole_cards})'
 
-players = [Player(100, 1), Player(100, 0)]
-hand1 = Hand(players, 0, 5, 10)
-hand1.call()
-hand1.fold()
-hand1.bet(12)
-hand1.call()
-print(hand1)
+
+def best_poker_hand(hole_cards, community_cards=list()):
+    cards = sorted(list(hole_cards) + community_cards)
+    rank_count = dict()
+    suit_count = dict()
+    for card in cards:
+        rank_count[card.rank] = rank_count.get(card.rank, 0) + 1
+        suit_count[card.suit] = rank_count.get(card.suit, 0) + 1
+    
+    flush_suit = max(suit_count)
+    if suit_count[flush_suit] >= 5:
+        for card in range(1, len(cards)):
+            if card.suit == flush_suit:
+                return None
+    return None
+
+
+def draw_table(app, canvas):
+    top_rail = ((1/4)*app.width-1, (1/6)*app.height, 
+                (3/4)*app.width+1, (1/6)*app.height)
+    bottom_rail = ((1/4)*app.width-1, (2/3)*app.height, 
+                   (3/4)*app.width+1, (2/3)*app.height)
+    left_rail = ((1/8)*app.width, (1/6)*app.height,
+                 (3/8)*app.width, (2/3)*app.height)
+    right_rail = ((5/8)*app.width, (1/6)*app.height, 
+                  (7/8)*app.width, (2/3)*app.height)
+    # Color in the table
+    
+    canvas.create_arc(left_rail, fill='dark green', width=0, start=90, extent=180)
+    canvas.create_arc(right_rail, fill='dark green', width=0, start=90, extent=-180)
+    canvas.create_rectangle(top_rail[0:2], bottom_rail[2:], fill='dark green', width=0)
+    # Draw the borders
+    canvas.create_line(top_rail, width=5)
+    canvas.create_line(bottom_rail, width=5)
+    canvas.create_arc(left_rail, width=5, start=90, extent=180, style=ARC)
+    canvas.create_arc(right_rail, width=5, start=90, extent=-180, style=ARC)

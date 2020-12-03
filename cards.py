@@ -1,4 +1,5 @@
 import math, random, string
+from PIL import Image, ImageTk
 
 class Card(object):
     ranks = [None, 'Ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'Jack', 'Queen', 'King']
@@ -37,6 +38,13 @@ class Card(object):
             self.suit = Card.suits_shorthand.index(suit)
         else:
             raise AttributeError(f'{suit} not a valid suit')
+     
+    def sprite(self, face_down=False):
+        if face_down:
+            path = f'resources/cards/.png'
+        else:
+            path = f'resources/cards/{self.__repr__()}.png'
+        return Image.open(path).convert("RGB") #ImageTk.PhotoImage()
 
     def __eq__(self, other):
         if isinstance(other, Card):
@@ -76,22 +84,3 @@ class Card(object):
 
     def __str__(self):
         return f'{Card.ranks[self.rank]} of {Card.suits[self.suit]}'
-
-
-
-
-def best_poker_hand(hole_cards, community_cards=list()):
-    cards = sorted(list(hole_cards) + community_cards)
-    rank_count = dict()
-    suit_count = dict()
-    for card in cards:
-        rank_count[card.rank] = rank_count.get(card.rank, 0) + 1
-        suit_count[card.suit] = rank_count.get(card.suit, 0) + 1
-    
-    flush_suit = max(suit_count)
-    if suit_count[flush_suit] >= 5:
-        for card in range(1, len(cards)):
-            if card.suit == flush_suit:
-                return None
-    return None
-
