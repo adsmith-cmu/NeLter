@@ -41,7 +41,7 @@ class Card(object):
      
     def sprite(self, face_down=False):
         if face_down:
-            path = f'resources/cards/.png'
+            path = f'resources/blue_back.png'
         else:
             path = f'resources/cards/{self.__repr__()}.png'
         return Image.open(path).convert("RGB") #ImageTk.PhotoImage()

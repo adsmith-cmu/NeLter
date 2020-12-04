@@ -126,6 +126,19 @@ class Hand(object):
     
 
     def draw_community_cards(self, app, canvas):
+        if self.betting_round > 0:
+            padding = 10
+            sprite = self.community_cards[0].sprite()
+            scaling_factor = app.height / 6 / sprite.size[1]
+            sprite_x = int(sprite.size[0] * scaling_factor)
+            sprite_y = int(sprite.size[1] * scaling_factor)
+            for i in range(len(self.community_cards)):
+                card = self.community_cards[i].sprite().resize((sprite_x, sprite_y))
+                x_pos = app.width/2 + (i - 2) * (sprite_x + padding)
+                canvas.create_image(x_pos, (5/12)*app.height, image=ImageTk.PhotoImage(card))
+    
+
+    def draw_bets(self, app, canvas):
         pass
 
 
@@ -149,8 +162,20 @@ class Player(object):
         self.hole_cards.append(card)
         self.hole_cards.sort(reverse=True)
 
-    
+    def _seat_map(self, app):
+        map = [((1/2)*app.width, (2/3)*app.height), 
+               ((1/4)*app.width, (2/3)*app.height),
+               ((1/8)*app.width, (5/12)*app.height),
+               ((1/4)*app.width, (1/6)*app.height),
+               ((1/2)*app.width, (1/6)*app.height),
+               ((3/4)*app.width, (1/6)*app.height),
+               ((7/8)*app.width, (5/12)*app.height),
+               ((3/4)*app.width, (2/3)*app.height),]
+        return map[self.seat]
+
     def draw_hole_cards(self, app, canvas):
+        x, y = self._seat_map(app)
+        padding = 10
         sprite = self.hole_cards[0].sprite()
         scaling_factor = app.height / 6 / sprite.size[1]
         sprite_x = int(sprite.size[0] * scaling_factor)
@@ -158,8 +183,8 @@ class Player(object):
 
         card1 = self.hole_cards[0].sprite().resize((sprite_x, sprite_y))
         card2 = self.hole_cards[1].sprite().resize((sprite_x, sprite_y))
-        canvas.create_image(app.width/2 - (sprite_x/2 + 10), (2/3)*app.height, image=ImageTk.PhotoImage(card1))
-        canvas.create_image(app.width/2 + (sprite_x/2 + 10), (2/3)*app.height, image=ImageTk.PhotoImage(card2))
+        canvas.create_image(x - (sprite_x/2 + padding), y, image=ImageTk.PhotoImage(card1))
+        canvas.create_image(x + (sprite_x/2 + padding), y, image=ImageTk.PhotoImage(card2))
 
     def __repr__(self):
         return f'Player(Seat: {self.seat}, Stack: {self.stack}, Cards: {self.hole_cards})'
@@ -182,6 +207,7 @@ def best_poker_hand(hole_cards, community_cards=list()):
 
 
 def draw_table(app, canvas):
+    thickness = 10
     top_rail = ((1/4)*app.width-1, (1/6)*app.height, 
                 (3/4)*app.width+1, (1/6)*app.height)
     bottom_rail = ((1/4)*app.width-1, (2/3)*app.height, 
@@ -196,7 +222,7 @@ def draw_table(app, canvas):
     canvas.create_arc(right_rail, fill='dark green', width=0, start=90, extent=-180)
     canvas.create_rectangle(top_rail[0:2], bottom_rail[2:], fill='dark green', width=0)
     # Draw the borders
-    canvas.create_line(top_rail, width=5)
-    canvas.create_line(bottom_rail, width=5)
-    canvas.create_arc(left_rail, width=5, start=90, extent=180, style=ARC)
-    canvas.create_arc(right_rail, width=5, start=90, extent=-180, style=ARC)
+    canvas.create_line(top_rail, width=thickness)
+    canvas.create_line(bottom_rail, width=thickness)
+    canvas.create_arc(left_rail, width=thickness, start=90, extent=180, style=ARC)
+    canvas.create_arc(right_rail, width=thickness, start=90, extent=-180, style=ARC)

@@ -28,7 +28,7 @@ class TitleScreenMode(Mode):
             button.released()
 
     def redrawAll(self, canvas):
-        canvas.create_image(self.width/2, self.height/2, image=ImageTk.PhotoImage(self.background))
+        #canvas.create_image(self.width/2, self.height/2, image=ImageTk.PhotoImage(self.background))
         canvas.create_text(self.width/2, self.height/6, text='Nelter', font=self.app.large_font)
         for button in self.buttons:
             button.draw(canvas)
@@ -36,18 +36,38 @@ class TitleScreenMode(Mode):
 class GameMode(Mode):
     def appStarted(self):
         self.players = []
-        for i in range(3):
+        for i in range(8):
             self.players.append(Player(100, i))
+        self.players.pop(3)
+        self.hand1 = Hand(self.players, 0, 5, 10)
+        self.hand1.progress_game()
+        self.hand1.progress_game()
+        self.hand1.progress_game()
+        self.buttons = []
 
-        hand1 = Hand(self.players, 0, 5, 10)
-
-        self.c1 = Card('A', 'S')
-        self.image1 = self.scaleImage(self.c1.sprite(), 0.2)
+    def mouseMoved(self, event):
+        for button in self.buttons:
+            button.update_hovering(event)
     
+    def mouseDragged(self, event):
+        for button in self.buttons:
+            button.update_hovering(event)
+
+    def mousePressed(self, event):
+        for button in self.buttons:
+            button.update_pressed(event)
+
+    def mouseReleased(self, event):
+        for button in self.buttons:
+            button.released()
 
     def redrawAll(self, canvas):
+        canvas.create_rectangle(0, 0, self.width, self.height, fill='RoyalBlue4')
         draw_table(self, canvas)
-        self.players[0].draw_hole_cards(self, canvas)
+        self.hand1.draw_community_cards(self, canvas)
+        for player in self.players:
+            player.draw_hole_cards(self, canvas)
+        
         
 
 
