@@ -9,6 +9,7 @@
 - [Timeline](#timeline)
 - [Version Control](#version-control)
 - [Module List](#module-list)
+- [TP2 Updates](#tp2-updates)
 
 ## Description
 
@@ -46,3 +47,7 @@ Version control for this project is handled through Git and GitHub. See image in
 - Pickle
 - Pillow
 - Tkinter
+
+## TP2 Updates
+
+None.

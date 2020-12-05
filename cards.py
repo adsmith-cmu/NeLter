@@ -1,5 +1,5 @@
 import math, random, string
-from PIL import Image, ImageTk
+from PIL import Image
 
 class Card(object):
     ranks = [None, 'Ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'Jack', 'Queen', 'King']
@@ -41,10 +41,10 @@ class Card(object):
      
     def sprite(self, face_down=False):
         if face_down:
-            path = f'resources/blue_back.png'
+            path = f'resources/purple_back.jpg'
         else:
-            path = f'resources/cards/{self.__repr__()}.png'
-        return Image.open(path).convert("RGB") #ImageTk.PhotoImage()
+            path = f'resources/cards_jpg/{self.__repr__()}.jpg'
+        return Image.open(path)#.convert("RGB")
 
     def __eq__(self, other):
         if isinstance(other, Card):

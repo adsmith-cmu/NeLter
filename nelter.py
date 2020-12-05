@@ -1,23 +1,15 @@
 from cmu_112_graphics import *
-from aidan_graphics import AidanButton
+from aidan_graphics import *
 
 from texas_holdem import *
-import random
+import random, time
 
 
 class TitleScreenMode(Mode):
     def appStarted(self):
         start_coords = (self.width/3, self.height/3, 2*self.width/3, self.height/2)
-        self.buttons = [AidanButton(start_coords, text='Start Game', font=self.app.medium_font, function=self.app.setActiveMode, parameters=self.app.game)]
-        self.background = self.loadImage('resources/aces.png').convert("RGB").resize((self.width, self.height))
-
-    def mouseMoved(self, event):
-        for button in self.buttons:
-            button.update_hovering(event)
-    
-    def mouseDragged(self, event):
-        for button in self.buttons:
-            button.update_hovering(event)
+        self.buttons = [AidanButton(start_coords, text='Start Game', font=self.app.default.medium_font, function=self.app.setActiveMode, parameters=self.app.game)]
+        self.background = self.loadImage('resources/aces.jpg').resize((self.width, self.height))
 
     def mousePressed(self, event):
         for button in self.buttons:
@@ -25,63 +17,57 @@ class TitleScreenMode(Mode):
 
     def mouseReleased(self, event):
         for button in self.buttons:
-            button.released()
+            button.released(event)
 
     def redrawAll(self, canvas):
-        #canvas.create_image(self.width/2, self.height/2, image=ImageTk.PhotoImage(self.background))
-        canvas.create_text(self.width/2, self.height/6, text='Nelter', font=self.app.large_font)
+        canvas.create_image(self.width/2, self.height/2, image=ImageTk.PhotoImage(self.background))
+        canvas.create_text(self.width/2, self.height/6, text='Nelter', font=self.app.default.large_font)
         for button in self.buttons:
             button.draw(canvas)
 
 class GameMode(Mode):
     def appStarted(self):
-        self.players = []
-        for i in range(8):
-            self.players.append(Player(100, i))
-        self.players.pop(3)
-        self.hand1 = Hand(self.players, 0, 5, 10)
-        self.hand1.progress_game()
-        self.hand1.progress_game()
-        self.hand1.progress_game()
-        self.buttons = []
+        self.gamers = [Player(100, 0, True)]
+        for i in range(1,8):
+            self.gamers.append(Player(100, i))
+        self.blinds = (5,10)
+        self.new_hand(self.gamers, self.blinds)
+       
+    def new_hand(self, players, *blinds):
+        self.hand = Hand(players, *blinds)
+        self.hand.init_user_controls(self)
 
-    def mouseMoved(self, event):
-        for button in self.buttons:
-            button.update_hovering(event)
-    
-    def mouseDragged(self, event):
-        for button in self.buttons:
-            button.update_hovering(event)
+    def timerFired(self):
+        self.hand.update_user_controls()
+
+    def keyPressed(self, event):
+        if self.hand.betting_round == Hand.SHOWDOWN:
+            self.new_hand(self.gamers, self.blinds)
 
     def mousePressed(self, event):
-        for button in self.buttons:
+        for button in self.hand.buttons:
             button.update_pressed(event)
 
     def mouseReleased(self, event):
-        for button in self.buttons:
-            button.released()
+        for button in self.hand.buttons:
+            button.released(event)
 
     def redrawAll(self, canvas):
         canvas.create_rectangle(0, 0, self.width, self.height, fill='RoyalBlue4')
         draw_table(self, canvas)
-        self.hand1.draw_community_cards(self, canvas)
-        for player in self.players:
-            player.draw_hole_cards(self, canvas)
+        self.hand.draw_cards(self, canvas)
+        self.hand.draw_chips(self, canvas)
+        for button in self.hand.buttons:
+            button.draw(canvas)
         
-        
 
 
-
-class NeLter(ModalApp):
+class Nelter(ModalApp):
     def appStarted(app):
+        app.default = GraphicsDefaults(app)
         app.title_screen = TitleScreenMode()
         app.game = GameMode()
-        app.margin = 10
-        app.font_family = 'Helvetica'
-        app.small_font = f'{app.font_family} {app.height//30} bold'
-        app.medium_font = f'{app.font_family} {app.height//20} bold'
-        app.large_font = f'{app.font_family} {app.height//10} bold'
-
+        #app.timerDelay = 1000
         app.setActiveMode(app.title_screen)
 
-app = NeLter(width=1600, height=1000)
+app = Nelter(width=1600, height=900)

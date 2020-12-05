@@ -1,54 +1,71 @@
 from cmu_112_graphics import *
 from tkinter import _flatten
 
+
+class GraphicsDefaults(object):
+    def __init__(self, app, **kwargs):
+        self.margin = 10
+        self.padding = 10
+        self.font_family = kwargs.get('font_family', 'Helvetica')
+        self.small_font = f'{self.font_family} {app.height//30} bold'
+        self.medium_font = f'{self.font_family} {app.height//20} bold'
+        self.large_font = f'{self.font_family} {app.height//10} bold'
+
+
 class AidanButton(object):
     def __init__(self, *args, **kwargs):
+        self.on = True
         self.coords = _flatten(args)
         self.color = kwargs.get('color', 'white')
         self.border_size = kwargs.get('border_size', 5)
 
         self.text = kwargs.get('text', '')
         font_family = kwargs.get('font_family', 'Helvetica')
-        font_size = kwargs.get('font_size', 16)
+        font_size = kwargs.get('font_size', int((self.coords[3]-self.coords[1])/2))
         self.font = kwargs.get('font', f'{font_family} {font_size} bold')
 
         self.function = kwargs.get('function', lambda: None)
         self.parameters = kwargs.get('parameters', None)
         self.pressed_effect = kwargs.get('press_effect', True)
         self.pressed = False
-        self.hover_effect = kwargs.get('hover_effect', True)
-        self.hovering = False
     
 
-    def update_hovering(self, event):
-        x0, y0, x1, y1 = self.coords
-        self.hovering = (x0 < event.x < x1) and (y0 < event.y < y1)
+    def turn_on(self):
+        self.pressed = False
+        self.on = True
+
+
+    def turn_off(self):
+        self.pressed = False
+        self.on = False
 
 
     def update_pressed(self, event):
-        if self.hovering:
+        x0, y0, x1, y1 = self.coords
+        if (x0 < event.x < x1) and (y0 < event.y < y1):
             self.pressed = True
+
+    
+    def released(self, event):
+        if self.on:
+            x0, y0, x1, y1 = self.coords
+            if self.pressed and (x0 < event.x < x1) and (y0 < event.y < y1):
+                if self.parameters is None:
+                    self.function()
+                elif isinstance(self.parameters, (list, tuple)):
+                    self.function(*_flatten(self.parameters))
+                else:
+                    self.function(self.parameters)
+            self.pressed = False
 
 
     def draw(self, canvas):
-        canvas.create_rectangle(self.coords, fill=self.color, width=self.border_size)
-        canvas.create_text(_midpoint(self.coords), text=self.text, font=self.font)
+        if self.on:
+            canvas.create_rectangle(self.coords, fill=self.color, width=self.border_size)
+            canvas.create_text(_midpoint(self.coords), text=self.text, font=self.font)
 
-        if self.pressed_effect and self.pressed:
-            canvas.create_rectangle(self.coords, width=1.5*self.border_size)
-        elif self.hover_effect and self.hovering:
-            pass
-
-    
-    def released(self):
-        if self.pressed and self.hovering:
-            if self.parameters is None:
-                self.function()
-            elif isinstance(self.parameters, (list, tuple)):
-                self.function(*_flatten(self.parameters))
-            else:
-                self.function(self.parameters)
-        self.pressed = False
+            if self.pressed_effect and self.pressed:
+                canvas.create_rectangle(self.coords, width=1.5*self.border_size)
 
 
 def _midpoint(*coordinates):
