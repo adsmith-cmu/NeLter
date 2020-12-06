@@ -1,4 +1,4 @@
-from cards import Card
+from cards import *
 from tkinter import ARC, _flatten
 from PIL import Image, ImageTk
 from aidan_graphics import *
@@ -80,6 +80,7 @@ class Hand(object):
         self.closing_action = self.previous_player()
         self.current_bet = [0 for _ in self.players]
         self.relative_min_raise = self.absolute_min_raise
+        Player.community_cards = self.community_cards
 
 
     def progress_game(self):
@@ -87,13 +88,14 @@ class Hand(object):
         if self.betting_round == Hand.SHOWDOWN:
             self.showdown()
         else:
-            self.reset_round()
             self.deck.pop(0)
             if self.betting_round == Hand.FLOP:
                 for _ in range(3):
                     self.community_cards.append(self.deck.pop(0))
             else:
                 self.community_cards.append(self.deck.pop(0))
+            self.reset_round()
+            
 
 
     # NEED LOGGING FOR HAND AND PLAYER
@@ -146,7 +148,10 @@ class Hand(object):
 
     def showdown(self):
         self.betting_round = Hand.SHOWDOWN
-        return None
+        #showdown_players = [player in self.players if player != None]
+        self.winner = max(self.players)
+        self.winner.stack += self.pot
+        
     
 
     @staticmethod
@@ -245,6 +250,8 @@ class Hand(object):
 
     
 class Player(object):
+    community_cards = list()
+
     def __init__(self, stack, seat, user=False):
         self.stack = stack
         self.seat = seat
@@ -257,6 +264,26 @@ class Player(object):
     def deal_card(self, card):
         self.hole_cards.append(card)
         self.hole_cards.sort(reverse=True)
+
+    def __eq__(self, other):
+        if isinstance(other, Player):
+            return PokerHand(Player.community_cards, self.hole_cards) == PokerHand(Player.community_cards, self.hole_cards)
+
+    def __lt__(self, other):
+        if isinstance(other, Player):
+            return PokerHand(Player.community_cards, self.hole_cards) < PokerHand(Player.community_cards, self.hole_cards)
+
+    def __le__(self, other):
+        if isinstance(other, Player):
+            return PokerHand(Player.community_cards, self.hole_cards) <= PokerHand(Player.community_cards, self.hole_cards)
+
+    def __gt__(self, other):
+        if isinstance(other, Player):
+            return PokerHand(Player.community_cards, self.hole_cards) > PokerHand(Player.community_cards, self.hole_cards)
+
+    def __ge__(self, other):
+        if isinstance(other, Player):
+            return PokerHand(Player.community_cards, self.hole_cards) >= PokerHand(Player.community_cards, self.hole_cards)
 
     def reset_cards(self):
         self.hole_cards = list()
@@ -299,22 +326,6 @@ class Player(object):
         return f'Player(Seat: {self.seat}, Stack: {self.stack}, Cards: {self.hole_cards})'
 
 
-def best_poker_hand(hole_cards, community_cards=list()):
-    cards = sorted(list(hole_cards) + community_cards)
-    rank_count = dict()
-    suit_count = dict()
-    for card in cards:
-        rank_count[card.rank] = rank_count.get(card.rank, 0) + 1
-        suit_count[card.suit] = rank_count.get(card.suit, 0) + 1
-    
-    flush_suit = max(suit_count)
-    if suit_count[flush_suit] >= 5:
-        for card in range(1, len(cards)):
-            if card.suit == flush_suit:
-                return None
-    return None
-
-
 def draw_table(app, canvas):
     thickness = 10
     top_rail = ((1/4)*app.width-1, (1/6)*app.height, 
@@ -335,3 +346,17 @@ def draw_table(app, canvas):
     canvas.create_line(bottom_rail, width=thickness)
     canvas.create_arc(left_rail, width=thickness, start=90, extent=180, style=ARC)
     canvas.create_arc(right_rail, width=thickness, start=90, extent=-180, style=ARC)
+
+
+players = [Player(100, 0, True), Player(100, 1)]
+hand = Hand(players, 5, 10)
+
+hand.progress_game()
+hand.progress_game()
+hand.progress_game()
+print(hand.community_cards)
+for player in hand.players:
+    if player != None:
+        print('hole', player.hole_cards)
+        PokerHand(Player.community_cards, player.hole_cards)
+print(max(hand.players))
