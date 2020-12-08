@@ -18,9 +18,6 @@ class Hand(object):
     def __init__(self, players, *blinds, ante=0):
         self.players = [None for _ in range(Hand.SEATS)]
         self.player_count = 0
-        for player in players:
-            self.players[player.seat] = player
-            self.player_count += 1
 
         self.deck = Card.new_deck()
         self.community_cards = list()
@@ -29,6 +26,11 @@ class Hand(object):
         self.betting_round = 0
         self.button = Hand.count % len(self.players)
         self.absolute_min_raise = max(*_flatten(blinds), 0)
+
+        for player in players:
+            if player.stack > self.absolute_min_raise:
+                self.players[player.seat] = player
+                self.player_count += 1
         self.reset_round()
 
         # Deal initial cards and put in blinds/ante
@@ -59,7 +61,7 @@ class Hand(object):
             seat = (button + 1) % len(self.players)
         else:
             seat = (self.action + 1) % len(self.players)
-        if self.players[seat] == None:
+        if self.players[seat] == None or self.players[seat].stack == 0:
             return self.next_player(seat)
         return seat
     
@@ -69,7 +71,7 @@ class Hand(object):
             seat = (button - 1) % len(self.players)
         else:
             seat = (self.action - 1) % len(self.players)
-        if self.players[seat] == None:
+        if self.players[seat] == None or self.players[seat].stack == 0:
             return self.previous_player(seat)
         return seat
 
@@ -88,6 +90,9 @@ class Hand(object):
         if self.betting_round == Hand.SHOWDOWN:
             self.showdown()
         else:
+            for player in self.players:
+                if player != None and player.stack == 0:
+                    player.sidepot += self.player_count * self.current_bet[player]
             self.deck.pop(0)
             if self.betting_round == Hand.FLOP:
                 for _ in range(3):
@@ -104,13 +109,27 @@ class Hand(object):
         call_price = max(self.current_bet) - self.current_bet[self.action]
         min_raise = call_price + self.relative_min_raise
         if player.stack > call_price:
-            amount = max(amount, min(min_raise, player.stack))
-            player.stack -= amount
-            self.pot += amount
-            self.current_bet[self.action] += amount 
-            self.relative_min_raise = amount - call_price
-            self.closing_action = self.previous_player()
-            self.action = self.next_player() 
+            if player.stack < min_raise:
+                amount = player.stack
+                player.sidepot = self.pot - sum(self.current_bet)
+                player.stack -= amount
+                self.pot += amount
+                self.current_bet[self.action] += amount
+                self.player_count -= 1
+
+                if self.closing_action == self.action:
+                    self.progress_game() 
+                else:
+                    self.action = self.next_player() 
+            else:
+                amount = max(amount, min_raise)
+                player.stack -= amount
+                self.pot += amount
+                self.current_bet[self.action] += amount 
+                
+                self.relative_min_raise = amount - call_price
+                self.closing_action = self.previous_player()
+                self.action = self.next_player() 
         else:
             self.call()
         
@@ -138,6 +157,7 @@ class Hand(object):
             self.players[self.action] = None
             self.player_count -= 1
             if self.player_count <= 1:
+                print('yes')
                 self.showdown()
                 return None
         if self.closing_action == self.action:
@@ -148,11 +168,20 @@ class Hand(object):
 
     def showdown(self):
         self.betting_round = Hand.SHOWDOWN
-        #showdown_players = [player in self.players if player != None]
-        self.winner = max(self.players)
-        self.winner.stack += self.pot
-        
-    
+        showdown_players = [player for player in self.players if player != None]
+        self._distribute_pot(showdown_players)
+
+
+    def _distribute_pot(self, showdown_players):
+        self.winner = max(showdown_players)
+        if self.winner.sidepot == 0:
+            self.winner.stack += self.pot
+        else:
+            self.winner.stack += self.winner.sidepot
+            self.pot -= self.winner.sidepot
+            showdown_players.remove(self.winner)
+            self._distribute_pot(showdown_players)
+            
 
     @staticmethod
     def _chip_map(app, seat):
@@ -169,15 +198,15 @@ class Hand(object):
 
     def _draw_community_cards(self, app, canvas):
         padding = 10
-        if self.betting_round > 0:
+        if len(self.community_cards) > 0:
             sprite = self.community_cards[0].sprite()
             scaling_factor = app.height / 8 / sprite.size[1]
             sprite_x = int(sprite.size[0] * scaling_factor)
             sprite_y = int(sprite.size[1] * scaling_factor)
             for i in range(len(self.community_cards)):
-                card = self.community_cards[i].sprite().resize((sprite_x, sprite_y))
+                card = format_image(sprite_x, sprite_y, self.community_cards[i].sprite())
                 x_pos = app.width/2 + (i - 2) * (sprite_x + padding)
-                canvas.create_image(x_pos, (5/12)*app.height, image=ImageTk.PhotoImage(card))
+                canvas.create_image(x_pos, (5/12)*app.height, image=card)
         canvas.create_text(app.width/2, (23/48)*app.height + 2*padding, text=f'Pot: {self.pot}', font='Helvetica 16 bold')
     
 
@@ -189,14 +218,17 @@ class Hand(object):
                     player._draw_player_info(app, canvas, False)  
                 else:
                     player._draw_player_info(app, canvas, not player.is_user(), player.seat == self.action)
+        if self.betting_round == Hand.SHOWDOWN:
+            canvas.create_text(app.width/2, (5/12)*app.height, text=f'Player {self.winner.seat} wins!', font='Helvetica 32 bold', anchor='s')
+            canvas.create_text(app.width/2, (5/12)*app.height, text='Press any key to deal next hand.', font='Helvetica 32 bold', anchor='n')
 
 
     def draw_chips(self, app, canvas):
         x, y, anchor = Hand._chip_map(app, self.button)
         scaling_factor = app.height / 32 / Hand.button_sprite.size[1]
         button_size = int(Hand.button_sprite.size[0] * scaling_factor)
-        button_sprite = Hand.button_sprite.resize((button_size, button_size))
-        canvas.create_image(x, y, image=ImageTk.PhotoImage(button_sprite), anchor=anchor)
+        button_sprite = format_image(button_size, button_size, Hand.button_sprite)
+        canvas.create_image(x, y, image=button_sprite, anchor=anchor)
 
 
     def init_user_controls(self, app):
@@ -220,23 +252,27 @@ class Hand(object):
 
 
     def update_user_controls(self):
-        player = self.players[self.action]
-        call_price = max(self.current_bet) - self.current_bet[self.action]
-        min_raise = call_price + self.relative_min_raise
-        self.buttons[1].text = f'Bet {min(min_raise, player.stack)}'
-        self.buttons[3].text = f'Call {min(call_price, player.stack)}'
-        self.buttons[4].text = f'Raise {min(min_raise, player.stack)}'
-
-        if call_price == 0:
-            for i in range(2):
-                self.buttons[i].turn_on()
-            for j in range(2,len(self.buttons)):
-                self.buttons[j].turn_off()
+        if self.betting_round == Hand.SHOWDOWN:
+            for i in range(len(self.buttons)):
+                    self.buttons[i].turn_off()
         else:
-            for i in range(2):
-                self.buttons[i].turn_off()
-            for j in range(2,len(self.buttons)):
-                self.buttons[j].turn_on()
+            player = self.players[self.action]
+            call_price = max(self.current_bet) - self.current_bet[self.action]
+            min_raise = call_price + self.relative_min_raise
+            self.buttons[1].text = f'Bet {min(min_raise, player.stack)}'
+            self.buttons[3].text = f'Call {min(call_price, player.stack)}'
+            self.buttons[4].text = f'Raise {min(min_raise, player.stack)}'
+
+            if call_price == 0:
+                for i in range(2):
+                    self.buttons[i].turn_on()
+                for j in range(2,len(self.buttons)):
+                    self.buttons[j].turn_off()
+            else:
+                for i in range(2):
+                    self.buttons[i].turn_off()
+                for j in range(2,len(self.buttons)):
+                    self.buttons[j].turn_on()
 
 
     def __repr__(self):
@@ -257,6 +293,10 @@ class Player(object):
         self.seat = seat
         self.hole_cards = list()
         self.user = user
+        self.sidepot = 0
+
+    def poker_hand(self):
+        return PokerHand(Player.community_cards, self.hole_cards)
 
     def is_user(self):
         return self.user
@@ -267,23 +307,23 @@ class Player(object):
 
     def __eq__(self, other):
         if isinstance(other, Player):
-            return PokerHand(Player.community_cards, self.hole_cards) == PokerHand(Player.community_cards, self.hole_cards)
+            return self.poker_hand() == other.poker_hand()
 
     def __lt__(self, other):
         if isinstance(other, Player):
-            return PokerHand(Player.community_cards, self.hole_cards) < PokerHand(Player.community_cards, self.hole_cards)
+            return self.poker_hand() < other.poker_hand()
 
     def __le__(self, other):
         if isinstance(other, Player):
-            return PokerHand(Player.community_cards, self.hole_cards) <= PokerHand(Player.community_cards, self.hole_cards)
+            return self.poker_hand() <= other.poker_hand()
 
     def __gt__(self, other):
         if isinstance(other, Player):
-            return PokerHand(Player.community_cards, self.hole_cards) > PokerHand(Player.community_cards, self.hole_cards)
+            return self.poker_hand() > other.poker_hand()
 
     def __ge__(self, other):
         if isinstance(other, Player):
-            return PokerHand(Player.community_cards, self.hole_cards) >= PokerHand(Player.community_cards, self.hole_cards)
+            return self.poker_hand() >= other.poker_hand()
 
     def reset_cards(self):
         self.hole_cards = list()
@@ -307,10 +347,10 @@ class Player(object):
         sprite_x = int(sprite.size[0] * scaling_factor)
         sprite_y = int(sprite.size[1] * scaling_factor)
         
-        card1 = self.hole_cards[0].sprite(face_down).resize((sprite_x, sprite_y))
-        card2 = self.hole_cards[1].sprite(face_down).resize((sprite_x, sprite_y))
-        canvas.create_image(x - (sprite_x/2 + padding), y, image=ImageTk.PhotoImage(card1))#, anchor=anchor)
-        canvas.create_image(x + (sprite_x/2 + padding), y, image=ImageTk.PhotoImage(card2))#, anchor=anchor)
+        card1 = format_image(sprite_x, sprite_y, self.hole_cards[0].sprite(face_down))
+        card2 = format_image(sprite_x, sprite_y, self.hole_cards[1].sprite(face_down))
+        canvas.create_image(x - (sprite_x/2 + padding), y, image=card1)#, anchor=anchor)
+        canvas.create_image(x + (sprite_x/2 + padding), y, image=card2)#, anchor=anchor)
         
         if indicator:
             outline = 'yellow'

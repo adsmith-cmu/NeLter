@@ -4,12 +4,13 @@ from aidan_graphics import *
 from texas_holdem import *
 import random, time
 
+# Background taken from https://opengameart.org/content/boardgame-pack
 
 class TitleScreenMode(Mode):
     def appStarted(self):
         start_coords = (self.width/3, self.height/3, 2*self.width/3, self.height/2)
         self.buttons = [AidanButton(start_coords, text='Start Game', font=self.app.default.medium_font, function=self.app.setActiveMode, parameters=self.app.game)]
-        self.background = self.loadImage('resources/aces.jpg').resize((self.width, self.height))
+        self.background = format_image(self.width, self.height, self.loadImage('resources/aces.jpg'))
 
     def mousePressed(self, event):
         for button in self.buttons:
@@ -20,7 +21,7 @@ class TitleScreenMode(Mode):
             button.released(event)
 
     def redrawAll(self, canvas):
-        canvas.create_image(self.width/2, self.height/2, image=ImageTk.PhotoImage(self.background))
+        canvas.create_image(self.width/2, self.height/2, image=self.background)
         canvas.create_text(self.width/2, self.height/6, text='Nelter', font=self.app.default.large_font)
         for button in self.buttons:
             button.draw(canvas)
@@ -39,6 +40,7 @@ class GameMode(Mode):
 
     def timerFired(self):
         self.hand.update_user_controls()
+
 
     def keyPressed(self, event):
         if self.hand.betting_round == Hand.SHOWDOWN:

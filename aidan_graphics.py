@@ -2,6 +2,22 @@ from cmu_112_graphics import *
 from tkinter import _flatten
 
 
+def _midpoint(*coordinates):
+    coordinates = _flatten(coordinates)
+    if len(coordinates) % 2 == 1 or len(coordinates) == 0:
+        raise TypeError(f'midpoint expected 2*k arguments got {len(coordinates)}')
+    x_coordinates = coordinates[0::2]
+    y_coordinates = coordinates[1::2]
+    return sum(x_coordinates)/len(x_coordinates), sum(y_coordinates)/len(y_coordinates)
+
+
+# Adapted from https://www.kosbie.net/cmu/fall-19/15-112/notes/notes-animations-part2.html#cachingPhotoImages
+def format_image(width, height, image):
+        if ('cached_image' not in image.__dict__):
+            image.cached_image = ImageTk.PhotoImage(image.resize((width, height)))
+        return image.cached_image
+
+
 class GraphicsDefaults(object):
     def __init__(self, app, **kwargs):
         self.margin = 10
@@ -67,11 +83,3 @@ class AidanButton(object):
             if self.pressed_effect and self.pressed:
                 canvas.create_rectangle(self.coords, width=1.5*self.border_size)
 
-
-def _midpoint(*coordinates):
-    coordinates = _flatten(coordinates)
-    if len(coordinates) % 2 == 1 or len(coordinates) == 0:
-        raise TypeError(f'midpoint expected 2*k arguments got {len(coordinates)}')
-    x_coordinates = coordinates[0::2]
-    y_coordinates = coordinates[1::2]
-    return sum(x_coordinates)/len(x_coordinates), sum(y_coordinates)/len(y_coordinates)
