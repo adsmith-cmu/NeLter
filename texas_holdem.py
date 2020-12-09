@@ -137,8 +137,12 @@ class Hand(object):
     def call(self):
         player = self.players[self.action]
         call_price = max(self.current_bet) - self.current_bet[self.action]
-        if player.stack > 0 or call_price <= 0:
-            amount = min(call_price, player.stack)
+        if player.stack > 0:
+            if player.stack < call_price:
+                amount = player.stack
+                player.sidepot += self.pot - sum(self.current_bet)
+            else:
+                amount = call_price
             player.stack -= amount
             self.pot += amount
             self.current_bet[self.action] += amount
@@ -153,11 +157,10 @@ class Hand(object):
         
     def fold(self):
         call_price = max(self.current_bet) - self.current_bet[self.action]
-        if call_price > 0:
+        if call_price > 0 and player.stack > 0:
             self.players[self.action] = None
             self.player_count -= 1
             if self.player_count <= 1:
-                print('yes')
                 self.showdown()
                 return None
         if self.closing_action == self.action:
