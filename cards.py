@@ -221,17 +221,3 @@ def _best_set(*cards, hand_size=5, value=None):
 def _sorting_card_lists(cards):
     rank = cards[0].rank if cards[0].rank > 1 else len(Card.ranks)
     return len(cards)*len(Card.ranks) + rank
-
-
-
-# community = [Card('J', 'H'), Card('Q', 'H'), Card(2, 'C'), Card(5, 'H'), Card(6, 'D')]
-# hole1 = [Card(5, 'D'), Card(3, 'D')]
-# hole2 = [Card('A', 'S'), Card(5, 'S')]
-# hole3 = [Card('Q', 'D'), Card(10, 'C')]
-# hand1 = PokerHand(community, hole1)
-# hand2 = PokerHand(community, hole2)
-# hand3 = PokerHand(community, hole3)
-
-
-
-

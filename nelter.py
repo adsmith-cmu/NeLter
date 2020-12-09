@@ -29,18 +29,22 @@ class TitleScreenMode(Mode):
 class GameMode(Mode):
     def appStarted(self):
         self.gamers = [Player(100, 0, True)]
-        for i in range(1,8):
+        for i in range(1,2):
             self.gamers.append(Player(100, i))
-        self.blinds = (5,10)
+
+        self.blinds = (1,2)
         self.new_hand(self.gamers, self.blinds)
        
     def new_hand(self, players, *blinds):
         self.hand = Hand(players, *blinds)
         self.hand.init_user_controls(self)
+        self.bots = [PokerBot(self.hand, player.seat) if player != None and not player.user else None for player in self.hand.players]
 
     def timerFired(self):
+        #print(self.hand.action)
         self.hand.update_user_controls()
-
+        if self.bots[self.hand.action] != None:
+            self.bots[self.hand.action].act()
 
     def keyPressed(self, event):
         if self.hand.betting_round == Hand.SHOWDOWN:

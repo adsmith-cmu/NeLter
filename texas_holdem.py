@@ -2,9 +2,10 @@ from cards import *
 from tkinter import ARC, _flatten
 from PIL import Image, ImageTk
 from aidan_graphics import *
+from npc_controls import *
 
 class Hand(object):
-    count = 0 # Keep track of hand number for logs
+    count = 1 # Keep track of hand number for logs
     button_sprite = Image.open('resources/button.png').convert("RGB")
 
     SEATS = 8
@@ -24,7 +25,7 @@ class Hand(object):
         self.pot = 0
 
         self.betting_round = 0
-        self.button = Hand.count % len(self.players)
+        self.button = players[Hand.count % len(players)].seat  # FIX
         self.absolute_min_raise = max(*_flatten(blinds), 0)
 
         for player in players:
@@ -83,6 +84,7 @@ class Hand(object):
         self.current_bet = [0 for _ in self.players]
         self.relative_min_raise = self.absolute_min_raise
         Player.community_cards = self.community_cards
+        Range.community_cards = self.community_cards
 
 
     def progress_game(self):
@@ -92,7 +94,7 @@ class Hand(object):
         else:
             for player in self.players:
                 if player != None and player.stack == 0:
-                    player.sidepot += self.player_count * self.current_bet[player]
+                    player.sidepot += self.player_count * self.current_bet[player.seat]
             self.deck.pop(0)
             if self.betting_round == Hand.FLOP:
                 for _ in range(3):
@@ -156,6 +158,7 @@ class Hand(object):
 
         
     def fold(self):
+        player = self.players[self.action]
         call_price = max(self.current_bet) - self.current_bet[self.action]
         if call_price > 0 and player.stack > 0:
             self.players[self.action] = None
@@ -220,7 +223,7 @@ class Hand(object):
                 if self.betting_round == Hand.SHOWDOWN:
                     player._draw_player_info(app, canvas, False)  
                 else:
-                    player._draw_player_info(app, canvas, not player.is_user(), player.seat == self.action)
+                    player._draw_player_info(app, canvas, not player.user, player.seat == self.action)
         if self.betting_round == Hand.SHOWDOWN:
             canvas.create_text(app.width/2, (5/12)*app.height, text=f'Player {self.winner.seat} wins!', font='Helvetica 32 bold', anchor='s')
             canvas.create_text(app.width/2, (5/12)*app.height, text='Press any key to deal next hand.', font='Helvetica 32 bold', anchor='n')
@@ -255,11 +258,11 @@ class Hand(object):
 
 
     def update_user_controls(self):
-        if self.betting_round == Hand.SHOWDOWN:
+        player = self.players[self.action]
+        if self.betting_round == Hand.SHOWDOWN or not player.user:
             for i in range(len(self.buttons)):
                     self.buttons[i].turn_off()
         else:
-            player = self.players[self.action]
             call_price = max(self.current_bet) - self.current_bet[self.action]
             min_raise = call_price + self.relative_min_raise
             self.buttons[1].text = f'Bet {min(min_raise, player.stack)}'
@@ -276,7 +279,6 @@ class Hand(object):
                     self.buttons[i].turn_off()
                 for j in range(2,len(self.buttons)):
                     self.buttons[j].turn_on()
-
 
     def __repr__(self):
         output = f'Pot: {self.pot} Board: {self.community_cards}'
@@ -300,9 +302,6 @@ class Player(object):
 
     def poker_hand(self):
         return PokerHand(Player.community_cards, self.hole_cards)
-
-    def is_user(self):
-        return self.user
 
     def deal_card(self, card):
         self.hole_cards.append(card)
@@ -391,15 +390,51 @@ def draw_table(app, canvas):
     canvas.create_arc(right_rail, width=thickness, start=90, extent=-180, style=ARC)
 
 
-players = [Player(100, 0, True), Player(100, 1)]
-hand = Hand(players, 5, 10)
+class PokerBot(object):
+    def __init__(self, hand, player_seat):
+        self.hand = hand
+        self.player = self.hand.players[player_seat]
+        self.ranges = [Range(self.player.hole_cards) for player in self.hand.players if player != None and player != self.player]
 
-hand.progress_game()
-hand.progress_game()
-hand.progress_game()
-print(hand.community_cards)
-for player in hand.players:
-    if player != None:
-        print('hole', player.hole_cards)
-        PokerHand(Player.community_cards, player.hole_cards)
-print(max(hand.players))
+    def update_ranges(self):
+        for i in range(len(self.ranges)):
+            if self.ranges[i] != None:
+                if self.hand.players[i] is None:
+                    self.ranges[i] = None
+                else:
+                    self.ranges[i].update(self.hand.community_cards)
+
+    def evaluate(self):
+        aggregate_rank = 0
+        for i in range(len(self.ranges)):
+            if self.ranges[i] != None:
+                if self.hand.players[i] is None:
+                    self.ranges[i] = None
+                else:
+                    aggregate_rank += self.ranges[i].rank_hand(self.player.hole_cards)
+        return aggregate_rank / (self.hand.player_count - 1)
+
+    def act(self):
+        if self.hand.betting_round != Hand.SHOWDOWN:
+            self.update_ranges()
+            for i in range(len(self.ranges)):
+                if self.ranges[i] != None:
+                    self.ranges[i].take_bot_percent(self.hand.current_bet[i]/self.hand.players[i].stack)
+            eval = self.evaluate()
+            print(eval, self.player.hole_cards)
+            if eval > 0.6: 
+                stack_blinds = self.player.stack / self.hand.relative_min_raise 
+                bet_amount1 = int(1 + (((1/0.6)*(eval - 0.6))**2)*(stack_blinds-1))
+                bet_amount2 = int((eval/0.5)**2 * self.hand.relative_min_raise)
+                print('bet sizes', bet_amount1, bet_amount2)
+                if eval > 0.7:
+                    self.hand.bet(bet_amount1)
+                else:
+                    self.hand.bet(bet_amount2)
+            elif eval > 0.2: self.hand.call()
+            else: self.hand.fold()
+
+    
+
+
+    
