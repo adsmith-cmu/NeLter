@@ -128,4 +128,4 @@ class Nelter(ModalApp):
         #app.timerDelay = 1000
         app.setActiveMode(app.title_screen)
 
-app = Nelter(width=1600, height=900)
+app = Nelter(width=1720, height=990)
