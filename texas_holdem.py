@@ -441,12 +441,10 @@ class PokerBot(object):
                 if self.ranges[i] != None:
                     self.ranges[i].take_top_percent(1 - (self.hand.current_bet[i]/self.hand.players[i].stack))
             eval = self.evaluate()
-            print(eval, self.player.hole_cards)
             if eval > 0.85: 
                 stack_blinds = self.player.stack / self.hand.relative_min_raise 
                 bet_amount1 = int(1 + (((1/0.85)*(eval - 0.85))**3)*(stack_blinds-1))
                 bet_amount2 = int((eval/0.85)**2 * self.hand.relative_min_raise)
-                print('bet sizes', bet_amount1, bet_amount2)
                 if eval > 0.95:
                     self.hand.bet(bet_amount1)
                 else:
