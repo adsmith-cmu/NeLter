@@ -5,7 +5,7 @@ from aidan_graphics import *
 from npc_controls import *
 
 class Hand(object):
-    count = 1 # Keep track of hand number for logs
+    count = 0 # Keep track of hand number for logs
     button_sprite = Image.open('resources/button.png').convert("RGB")
 
     SEATS = 8
@@ -25,7 +25,7 @@ class Hand(object):
         self.pot = 0
 
         self.betting_round = 0
-        self.button = players[Hand.count % len(players)].seat  # FIX
+        self.button = players[Hand.count % len(players)].seat
         self.absolute_min_raise = max(*_flatten(blinds), 0)
 
         for player in players:
@@ -191,14 +191,14 @@ class Hand(object):
 
     @staticmethod
     def _chip_map(app, seat):
-        map = [((1/2)*app.width, (2/3)*app.height, 's'), 
-               ((1/4)*app.width, (2/3)*app.height, 'sw'),
-               ((1/8)*app.width, (5/12)*app.height, 'w'),
-               ((1/4)*app.width, (1/6)*app.height, 'nw'),
-               ((1/2)*app.width, (1/6)*app.height, 'n'),
-               ((3/4)*app.width, (1/6)*app.height, 'ne'),
-               ((7/8)*app.width, (5/12)*app.height, 'e'),
-               ((3/4)*app.width, (2/3)*app.height, 'se'),]
+        map = [((1/2)*app.width, (27/48)*app.height, 's', 'n'), 
+               ((1/4)*app.width, (27/48)*app.height, 'sw', 'ne'),
+               ((3/16)*app.width, (5/12)*app.height, 'w', 'e'),
+               ((1/4)*app.width, (13/48)*app.height, 'nw', 'se'),
+               ((1/2)*app.width, (13/48)*app.height, 'n', 's'),
+               ((3/4)*app.width, (13/48)*app.height, 'ne', 'sw'),
+               ((13/16)*app.width, (5/12)*app.height, 'e', 'w'),
+               ((3/4)*app.width, (27/48)*app.height, 'se', 'nw'),]
         return map[seat]
 
 
@@ -230,11 +230,28 @@ class Hand(object):
 
 
     def draw_chips(self, app, canvas):
-        x, y, anchor = Hand._chip_map(app, self.button)
+        padding = 10
+        x, y, anchor1, anchor2 = Hand._chip_map(app, self.button)
+        if self.button in [0,1,7]:
+            x -= (1/16)*app.width
+            y += (1/48)*app.height
+        elif self.button in [3,4,5]:
+            x += (1/15)*app.width
+            y -= (1/64)*app.height
+        elif self.button == 6:
+            x += (1/26)*app.width
+            y -= (1/12)*app.height
+        else:
+            x -= (1/26)*app.width
+            y -= (1/12)*app.height
         scaling_factor = app.height / 32 / Hand.button_sprite.size[1]
         button_size = int(Hand.button_sprite.size[0] * scaling_factor)
         button_sprite = format_image(button_size, button_size, Hand.button_sprite)
-        canvas.create_image(x, y, image=button_sprite, anchor=anchor)
+        canvas.create_image(x, y, image=button_sprite)
+        for i in range(len(self.players)):
+            if self.players[i] != None or self.current_bet[i] != 0:
+                x, y, anchor1, anchor2 = Hand._chip_map(app, i)
+                canvas.create_text(x, y, text=self.current_bet[i], font='Helvetica 16 bold')
 
 
     def init_user_controls(self, app):
@@ -333,11 +350,11 @@ class Player(object):
     def _seat_map(self, app):
         map = [((1/2)*app.width, (2/3)*app.height, 'n'), 
                ((1/4)*app.width, (2/3)*app.height, 'ne'),
-               ((1/8)*app.width, (5/12)*app.height, 'e'),
-               ((1/4)*app.width, (1/6)*app.height, 'se'),
-               ((1/2)*app.width, (1/6)*app.height, 's'),
-               ((3/4)*app.width, (1/6)*app.height, 'sw'),
-               ((7/8)*app.width, (5/12)*app.height, 'w'),
+               ((1/10)*app.width, (5/12)*app.height, 'e'),
+               ((1/4)*app.width, (1/7)*app.height, 'se'),
+               ((1/2)*app.width, (1/7)*app.height, 's'),
+               ((3/4)*app.width, (1/7)*app.height, 'sw'),
+               ((9/10)*app.width, (5/12)*app.height, 'w'),
                ((3/4)*app.width, (2/3)*app.height, 'nw'),]
         return map[self.seat]
 
@@ -361,7 +378,7 @@ class Player(object):
         stack_box = (x - (sprite_x + padding), y + sprite_y/2 + padding,
                      x + (sprite_x + padding), y + sprite_y/2 + 3*padding)
         canvas.create_rectangle(stack_box, fill='white', width=3, outline=outline)
-        canvas.create_text(x, y + 2*padding + sprite_y/2, text=(self.stack), font='Helvetica 16 bold')
+        canvas.create_text(x, y + 2*padding + sprite_y/2, text=f'Player {self.seat}: {self.stack}', font='Helvetica 16 bold')
         
 
     def __repr__(self):
@@ -419,19 +436,19 @@ class PokerBot(object):
             self.update_ranges()
             for i in range(len(self.ranges)):
                 if self.ranges[i] != None:
-                    self.ranges[i].take_bot_percent(self.hand.current_bet[i]/self.hand.players[i].stack)
+                    self.ranges[i].take_top_percent(1 - (self.hand.current_bet[i]/self.hand.players[i].stack))
             eval = self.evaluate()
             print(eval, self.player.hole_cards)
-            if eval > 0.75: 
+            if eval > 0.85: 
                 stack_blinds = self.player.stack / self.hand.relative_min_raise 
-                bet_amount1 = int(1 + (((1/0.75)*(eval - 0.75))**3)*(stack_blinds-1))
-                bet_amount2 = int((eval/0.75)**2 * self.hand.relative_min_raise)
+                bet_amount1 = int(1 + (((1/0.85)*(eval - 0.85))**3)*(stack_blinds-1))
+                bet_amount2 = int((eval/0.85)**2 * self.hand.relative_min_raise)
                 print('bet sizes', bet_amount1, bet_amount2)
-                if eval > 0.9:
+                if eval > 0.95:
                     self.hand.bet(bet_amount1)
                 else:
                     self.hand.bet(bet_amount2)
-            elif eval > 0.4: self.hand.call()
+            elif eval > 0.5: self.hand.call()
             else: self.hand.fold()
 
     
