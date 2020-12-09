@@ -422,16 +422,16 @@ class PokerBot(object):
                     self.ranges[i].take_bot_percent(self.hand.current_bet[i]/self.hand.players[i].stack)
             eval = self.evaluate()
             print(eval, self.player.hole_cards)
-            if eval > 0.6: 
+            if eval > 0.75: 
                 stack_blinds = self.player.stack / self.hand.relative_min_raise 
-                bet_amount1 = int(1 + (((1/0.6)*(eval - 0.6))**2)*(stack_blinds-1))
-                bet_amount2 = int((eval/0.5)**2 * self.hand.relative_min_raise)
+                bet_amount1 = int(1 + (((1/0.75)*(eval - 0.75))**3)*(stack_blinds-1))
+                bet_amount2 = int((eval/0.75)**2 * self.hand.relative_min_raise)
                 print('bet sizes', bet_amount1, bet_amount2)
-                if eval > 0.7:
+                if eval > 0.9:
                     self.hand.bet(bet_amount1)
                 else:
                     self.hand.bet(bet_amount2)
-            elif eval > 0.2: self.hand.call()
+            elif eval > 0.4: self.hand.call()
             else: self.hand.fold()
 
     

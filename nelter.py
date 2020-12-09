@@ -29,7 +29,7 @@ class TitleScreenMode(Mode):
 class GameMode(Mode):
     def appStarted(self):
         self.gamers = [Player(100, 0, True)]
-        for i in range(1,2):
+        for i in range(1,5):
             self.gamers.append(Player(100, i))
 
         self.blinds = (1,2)

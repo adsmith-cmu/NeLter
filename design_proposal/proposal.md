@@ -10,6 +10,7 @@
 - [Version Control](#version-control)
 - [Module List](#module-list)
 - [TP2 Updates](#tp2-updates)
+- [TP3 Updates](#tp3-updates)
 
 ## Description
 
@@ -49,5 +50,9 @@ Version control for this project is handled through Git and GitHub. See image in
 - Tkinter
 
 ## TP2 Updates
+
+None.
+
+## TP3 Updates
 
 None.
