@@ -49,7 +49,7 @@ class HelpMode(Mode):
 
     def redrawAll(self, canvas):
         how_to_play = 'How to play:'
-        how_to_play += '\n1. 4 rounds of no limit betting before showdown (Use arrow keys to adjust bet)'
+        how_to_play += '\n1. 4 rounds of no limit betting before showdown (use arrow keys to adjust bet)'
         how_to_play += '\n2. Best 5 card poker combination of community and hole cards wins'
         how_to_play += '\n3. See below for hand rankings'
 
