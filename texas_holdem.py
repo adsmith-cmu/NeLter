@@ -230,7 +230,6 @@ class Hand(object):
 
 
     def draw_chips(self, app, canvas):
-        padding = 10
         x, y, anchor1, anchor2 = Hand._chip_map(app, self.button)
         if self.button in [0,1,7]:
             x -= (1/16)*app.width
@@ -258,6 +257,7 @@ class Hand(object):
         padding = 50
         call_price = max(self.current_bet) - self.current_bet[self.action]
         min_raise = call_price + self.relative_min_raise
+        self.amount = min_raise
 
         button_coords = [[None]*2, [None]*3]
         for i in range(len(button_coords)):
@@ -282,9 +282,12 @@ class Hand(object):
         else:
             call_price = max(self.current_bet) - self.current_bet[self.action]
             min_raise = call_price + self.relative_min_raise
-            self.buttons[1].text = f'Bet {min(min_raise, player.stack)}'
+            self.amount = max(self.amount, min_raise)
+            self.buttons[1].parameters = min(self.amount, player.stack)
+            self.buttons[4].parameters = min(self.amount, player.stack)
+            self.buttons[1].text = f'Bet {self.buttons[1].parameters}'
             self.buttons[3].text = f'Call {min(call_price, player.stack)}'
-            self.buttons[4].text = f'Raise {min(min_raise, player.stack)}'
+            self.buttons[4].text = f'Raise {self.buttons[4].parameters}'
 
             if call_price == 0:
                 for i in range(2):
